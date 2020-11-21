@@ -121,7 +121,7 @@ if __name__ == "__main__":
         for val_images, val_labels in ds_validation:
             val_step(val_images, val_labels)
 
-        template = "Epoch {}, Loss: {0:2}, Accuracy: {0:2}, Val Loss: {0:2}, Val Accuracy: {0:2}"
+        template = "Epoch {}, Loss: {}, Accuracy: {}, Val Loss: {}, Val Accuracy: {}"
         print(
             template.format(
                 epoch + 1,
