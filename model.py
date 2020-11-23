@@ -12,7 +12,7 @@ import tensorflow_datasets as tfds
 import numpy as np
 import matplotlib.pylab as plt
 import random
-from tensorflow.keras.applications import EfficientNetB7
+
 
 
 class SakibNet(Model):
@@ -350,7 +350,7 @@ if __name__ == "__main__":
         val_loss(t_loss)
         val_accuracy(labels, predictions)
 
-    EPOCHS = 50
+    EPOCHS = 150
     for epoch in range(EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
