@@ -139,132 +139,128 @@ ARCH_BLOCKS_ARGS = [
         se_ratio=0.25,
     ),
 ]
-BATCH_SIZE = 32
 
 
-class EfficientNet(Model):
-    def __init__(self, dropout_rate=0.2, num_classes=10, version=6):
-        super(EfficientNet, self).__init__()
-        self._block_args: BlockArgs = ARCH_BLOCKS_ARGS[version]
-        self._activation_fn = tf.nn.swish
-        self._dropout_rate = dropout_rate
-        # create the stem
-        self._stem = Sequential(
-            [
-                layers.Conv2D(
-                    filters=32,
-                    kernel_size=3,
-                    strides=(2, 2),
-                    padding="same",
-                    use_bias=False,
-                    kernel_initializer=CONV_KERNEL_INITIALIZER,
-                ),
-                layers.BatchNormalization(),
-                layers.Activation(self._activation_fn),
-            ],
-            name="stem",
-        )
-        self._top = Sequential(
-            [
-                layers.Conv2D(
-                    filters=1280,
-                    kernel_size=1,
-                    padding="same",
-                    use_bias=False,
-                    kernel_initializer=CONV_KERNEL_INITIALIZER,
-                ),
-                layers.BatchNormalization(),
-                layers.Activation(self._activation_fn),
-            ],
-            name="top",
-        )
-        self._classifier = Sequential(
-            [
-                layers.GlobalAveragePooling2D(),
-                layers.Dropout(dropout_rate),
-                layers.Dense(
-                    num_classes,
-                    activation="softmax",
-                    kernel_initializer=DENSE_KERNEL_INITIALIZER,
-                    name="probs",
-                ),
-            ],
-            name="classifier",
-        )
-        self._m1 = self.module_1()
-        self._m2 = self.module_2()
-        self._m3 = self.module_3()
-        self._m4 = self.module_4()
-        self._m5 = self.module_5()
-
-    def module_1(self):
-        return Sequential(
-            [
-                layers.DepthwiseConv2D(
-                    self._block_args.kernel_size,
-                    strides=self._block_args.strides,
-                    padding="same",
-                    use_bias=False,
-                    depthwise_initializer=CONV_KERNEL_INITIALIZER,
-                ),
-                layers.BatchNormalization(),
-                layers.Activation(self._activation_fn)]
-        )
-
-    def module_2(self):
-        return Sequential([self.module_1(), self.module_1()])
-
-    def module_3(self):
-        return Sequential([
-            layers.GlobalAveragePooling2D(),
-            layers.Reshape(target_shape=(1, 1, 32)),
+def EfficientNet(input_shape, dropout_rate=0.2, num_classes=10, version=6):
+    block_args: BlockArgs = ARCH_BLOCKS_ARGS[version]
+    activation_fn = tf.nn.swish
+    inputs = Input(shape=input_shape, name="input")
+    # create the stem
+    stem = Sequential(
+        [
             layers.Conv2D(
-                filters=self._block_args.input_filters/2,
-                activation=self._activation_fn,
-                kernel_size=1,
+                filters=32,
+                kernel_size=3,
+                strides=(2, 2),
                 padding="same",
-                use_bias=True,
+                use_bias=False,
                 kernel_initializer=CONV_KERNEL_INITIALIZER,
             ),
+            layers.BatchNormalization(),
+            layers.Activation(activation_fn),
+        ],
+        name="stem",
+    )
+    top = Sequential(
+        [
             layers.Conv2D(
-                filters=self._block_args.input_filters,
-                activation="sigmoid",
-                kernel_size=1,
-                padding="same",
-                use_bias=True,
-                kernel_initializer=CONV_KERNEL_INITIALIZER,
-            )
-        ])
-
-    def module_4(self):
-        return Sequential([
-            #layers.multiply([self.outputs[0] , self.outputs[-1]]),
-            layers.Conv2D(
-                filters=self._block_args.input_filters,
+                filters=1280,
                 kernel_size=1,
                 padding="same",
                 use_bias=False,
                 kernel_initializer=CONV_KERNEL_INITIALIZER,
             ),
-            layers.BatchNormalization()
-        ])
+            layers.BatchNormalization(),
+            layers.Activation(activation_fn),
+        ],
+        name="top",
+    )
+    classifier = Sequential(
+        [
+            layers.GlobalAveragePooling2D(),
+            layers.Dropout(dropout_rate),
+            layers.Dense(
+                num_classes,
+                activation="softmax",
+                kernel_initializer=DENSE_KERNEL_INITIALIZER,
+                name="probs",
+            ),
+        ],
+        name="classifier",
+    )
 
-    def module_5(self):
-        return Sequential([
-            self.module_4(),
-            layers.Dropout(self._dropout_rate)
-        ])
+    def mb_conv_block(inputs):
+        filters = block_args.input_filters * block_args.expand_ratio
+        has_se = (block_args.se_ratio is not None) and (0 < block_args.se_ratio <= 1)
+        if block_args.expand_ratio != 1:
+            x = layers.Conv2D(
+                filters,
+                1,
+                padding="same",
+                use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+            )(inputs)
+            x = layers.BatchNormalization()(x)
+            x = layers.Activation(activation_fn)(x)
+        else:
+            x = inputs
 
-    def call(self, x, training=None, mask=None):
-        x = self._stem(x)
-        x = self._m1(x)
-        x = self._m2(x)
-        x = self._m3(x)
-        x = self._m4(x)
-        x = self._m5(x)
-        x = self._top(x)
-        x = self._classifier(x)
+        x = layers.DepthwiseConv2D(
+            block_args.kernel_size,
+            strides=block_args.strides,
+            padding="same",
+            use_bias=False,
+            depthwise_initializer=CONV_KERNEL_INITIALIZER,
+        )(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation(activation_fn)(x)
+
+        if has_se:
+            num_reduced_filters = max(
+                1, int(block_args.input_filters * block_args.se_ratio)
+            )
+            se_tensor = layers.GlobalAveragePooling2D()(x)
+            target_shape = (1, 1, filters)
+            se_tensor = layers.Reshape(target_shape)(se_tensor)
+            se_tensor = layers.Conv2D(
+                num_reduced_filters,
+                1,
+                activation=activation_fn,
+                padding="same",
+                use_bias=True,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+            )(se_tensor)
+            se_tensor = layers.Conv2D(
+                filters,
+                1,
+                activation="sigmoid",
+                padding="same",
+                use_bias=True,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+            )(se_tensor)
+
+            x = layers.multiply([x, se_tensor])
+        # Output phase
+        x = layers.Conv2D(
+            block_args.output_filters,
+            1,
+            padding="same",
+            use_bias=False,
+            kernel_initializer=CONV_KERNEL_INITIALIZER,
+        )(x)
+        x = layers.BatchNormalization()(x)
         return x
+
+    x = stem(inputs)
+    for idx, block_args in enumerate(ARCH_BLOCKS_ARGS):
+        assert block_args.num_repeat > 0
+        x = mb_conv_block(x)
+    x = top(x)
+    x = classifier(x)
+    # create the model
+    model = Model(inputs, x, name="sakibNet")
+    # return the constructed network architecture
+    return model
 
 
 def visualize_data(data_path, n=10, rows=2):
@@ -320,13 +316,14 @@ if __name__ == "__main__":
     assert len(tf.config.list_physical_devices("GPU")) > 0, "Not GPU detected"
     # visualize_data("data/private_test_images.npy", n = 50, rows=5)
     ds_train, ds_validation = load_dataset()
-    model = EfficientNet(num_classes=10, version=6)
-    # model.summary()
+    model = EfficientNet(input_shape=(32, 32, 3), num_classes=10, version=6)
+    model.summary()
     # for val_images, val_labels in ds_train.take(3):
     #     model(val_images, val_labels)
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     # optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)#
     optimizer = tf.keras.optimizers.Adam()
+
     train_loss = tf.keras.metrics.Mean(name="train_loss")
     train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name="train_accuracy")
     val_loss = tf.keras.metrics.Mean(name="test_loss")
