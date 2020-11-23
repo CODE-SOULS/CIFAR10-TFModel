@@ -250,7 +250,6 @@ def EfficientNet(input_shape, dropout_rate=0.2, num_classes=10, version=6):
         )(x)
         x = layers.BatchNormalization()(x)
         return x
-
     x = stem(inputs)
     for idx, block_args in enumerate(ARCH_BLOCKS_ARGS):
         assert block_args.num_repeat > 0
@@ -347,7 +346,7 @@ if __name__ == "__main__":
         val_loss(t_loss)
         val_accuracy(labels, predictions)
 
-    EPOCHS = 50
+    EPOCHS = 100
     for epoch in range(EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()

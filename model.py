@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pylab as plt
 import random
 from tensorflow.keras.applications import EfficientNetB7
+from tensorflow.python.keras.layers import ZeroPadding2D
 
 
 class SakibNet(Model):
@@ -143,7 +144,7 @@ BATCH_SIZE = 32
 
 
 class EfficientNet(Model):
-    def __init__(self, dropout_rate=0.2, num_classes=10, version=6):
+    def __init__(self, dropout_rate=0.5, num_classes=10, version=6):
         super(EfficientNet, self).__init__()
         self._block_args: BlockArgs = ARCH_BLOCKS_ARGS[version]
         self._activation_fn = tf.nn.swish
@@ -193,13 +194,12 @@ class EfficientNet(Model):
         )
         self._m1 = self.module_1()
         self._m2 = self.module_2()
-        self._m3 = self.module_3()
-        self._m4 = self.module_4()
-        self._m5 = self.module_5()
+        # self._m3 = self.module_3()
+        # self._m4 = self.module_4()
+        # self._m5 = self.module_5()
 
     def module_1(self):
-        return Sequential(
-            [
+        return Sequential([
                 layers.DepthwiseConv2D(
                     self._block_args.kernel_size,
                     strides=self._block_args.strides,
@@ -208,11 +208,14 @@ class EfficientNet(Model):
                     depthwise_initializer=CONV_KERNEL_INITIALIZER,
                 ),
                 layers.BatchNormalization(),
-                layers.Activation(self._activation_fn)]
+                layers.Activation(self._activation_fn),
+                # new
+                layers.Dropout(0.25)
+        ]
         )
 
     def module_2(self):
-        return Sequential([self.module_1(), self.module_1()])
+        return Sequential([self.module_1(), ZeroPadding2D((1,1)), self.module_1()])
 
     def module_3(self):
         return Sequential([
@@ -259,9 +262,9 @@ class EfficientNet(Model):
         x = self._stem(x)
         x = self._m1(x)
         x = self._m2(x)
-        x = self._m3(x)
-        x = self._m4(x)
-        x = self._m5(x)
+        # x = self._m3(x)
+        # x = self._m4(x)
+        # x = self._m5(x)
         x = self._top(x)
         x = self._classifier(x)
         return x
@@ -325,7 +328,7 @@ if __name__ == "__main__":
     # for val_images, val_labels in ds_train.take(3):
     #     model(val_images, val_labels)
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-    # optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)#
+    #optimizer = tf.keras.optimizers.SGD()
     optimizer = tf.keras.optimizers.Adam()
     train_loss = tf.keras.metrics.Mean(name="train_loss")
     train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name="train_accuracy")
@@ -350,7 +353,7 @@ if __name__ == "__main__":
         val_loss(t_loss)
         val_accuracy(labels, predictions)
 
-    EPOCHS = 50
+    EPOCHS = 100
     for epoch in range(EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
