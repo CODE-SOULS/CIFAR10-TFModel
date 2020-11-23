@@ -12,7 +12,6 @@ import tensorflow_datasets as tfds
 import numpy as np
 import matplotlib.pylab as plt
 import random
-from tensorflow.keras.applications import EfficientNetB7
 from tensorflow.python.keras.layers import ZeroPadding2D
 
 
@@ -22,7 +21,6 @@ class SakibNet(Model):
         self.conv1 = Conv2D(
             16, 3, input_shape=(32, 32, 3), padding="same", activation="relu"
         )
-        self.efcnet = EfficientNetB7()
         self.conv2 = Conv2D(32, 3, activation="relu")
         self.flatten = Flatten()
         self.d1 = Dense(128, activation="relu")
@@ -209,7 +207,6 @@ class EfficientNet(Model):
                 ),
                 layers.BatchNormalization(),
                 layers.Activation(self._activation_fn),
-                # new
                 layers.Dropout(0.25)
         ]
         )
@@ -353,7 +350,11 @@ if __name__ == "__main__":
         val_loss(t_loss)
         val_accuracy(labels, predictions)
 
+<<<<<<< HEAD
     EPOCHS = 100
+=======
+    EPOCHS = 150
+>>>>>>> 22e2668f0340ba9941ae32068d96a515d0dbcfe4
     for epoch in range(EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
