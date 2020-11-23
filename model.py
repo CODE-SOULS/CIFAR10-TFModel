@@ -193,7 +193,7 @@ class EfficientNet(Model):
         self._m1 = self.module_1()
         self._m2 = self.module_2()
         # self._m3 = self.module_3()
-        # self._m4 = self.module_4()
+        self._m4 = self.module_4()
         # self._m5 = self.module_5()
 
     def module_1(self):
@@ -207,7 +207,7 @@ class EfficientNet(Model):
                 ),
                 layers.BatchNormalization(),
                 layers.Activation(self._activation_fn),
-                layers.Dropout(0.25)
+                layers.Dropout(0.25) # it was include
         ]
         )
 
@@ -260,7 +260,7 @@ class EfficientNet(Model):
         x = self._m1(x)
         x = self._m2(x)
         # x = self._m3(x)
-        # x = self._m4(x)
+        x = self._m4(x)
         # x = self._m5(x)
         x = self._top(x)
         x = self._classifier(x)
@@ -350,11 +350,8 @@ if __name__ == "__main__":
         val_loss(t_loss)
         val_accuracy(labels, predictions)
 
-<<<<<<< HEAD
+
     EPOCHS = 100
-=======
-    EPOCHS = 150
->>>>>>> 22e2668f0340ba9941ae32068d96a515d0dbcfe4
     for epoch in range(EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
