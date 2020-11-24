@@ -250,6 +250,7 @@ def EfficientNet(input_shape, dropout_rate=0.2, num_classes=10, version=6):
         )(x)
         x = layers.BatchNormalization()(x)
         return x
+
     x = stem(inputs)
     for idx, block_args in enumerate(ARCH_BLOCKS_ARGS):
         assert block_args.num_repeat > 0

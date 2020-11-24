@@ -1,6 +1,6 @@
 # Below configures are examples,
 # you can modify them as you wish.
-
+import tensorflow as tf
 ### YOUR CODE HERE
 
 model_configs = {
@@ -11,8 +11,7 @@ model_configs = {
 }
 
 training_configs = {
-    "learning_rate": 0.01,
-    # ...
+    "learning_rate": 0.01
 }
 
 ### END CODE HERE

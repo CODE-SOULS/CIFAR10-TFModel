@@ -197,7 +197,8 @@ class EfficientNet(Model):
         # self._m5 = self.module_5()
 
     def module_1(self):
-        return Sequential([
+        return Sequential(
+            [
                 layers.DepthwiseConv2D(
                     self._block_args.kernel_size,
                     strides=self._block_args.strides,
@@ -207,53 +208,54 @@ class EfficientNet(Model):
                 ),
                 layers.BatchNormalization(),
                 layers.Activation(self._activation_fn),
-                layers.Dropout(0.25) # it was include
-        ]
+                layers.Dropout(0.25),  # it was include
+            ]
         )
 
     def module_2(self):
-        return Sequential([self.module_1(), ZeroPadding2D((1,1)), self.module_1()])
+        return Sequential([self.module_1(), ZeroPadding2D((1, 1)), self.module_1()])
 
     def module_3(self):
-        return Sequential([
-            layers.GlobalAveragePooling2D(),
-            layers.Reshape(target_shape=(1, 1, 32)),
-            layers.Conv2D(
-                filters=self._block_args.input_filters/2,
-                activation=self._activation_fn,
-                kernel_size=1,
-                padding="same",
-                use_bias=True,
-                kernel_initializer=CONV_KERNEL_INITIALIZER,
-            ),
-            layers.Conv2D(
-                filters=self._block_args.input_filters,
-                activation="sigmoid",
-                kernel_size=1,
-                padding="same",
-                use_bias=True,
-                kernel_initializer=CONV_KERNEL_INITIALIZER,
-            )
-        ])
+        return Sequential(
+            [
+                layers.GlobalAveragePooling2D(),
+                layers.Reshape(target_shape=(1, 1, 32)),
+                layers.Conv2D(
+                    filters=self._block_args.input_filters / 2,
+                    activation=self._activation_fn,
+                    kernel_size=1,
+                    padding="same",
+                    use_bias=True,
+                    kernel_initializer=CONV_KERNEL_INITIALIZER,
+                ),
+                layers.Conv2D(
+                    filters=self._block_args.input_filters,
+                    activation="sigmoid",
+                    kernel_size=1,
+                    padding="same",
+                    use_bias=True,
+                    kernel_initializer=CONV_KERNEL_INITIALIZER,
+                ),
+            ]
+        )
 
     def module_4(self):
-        return Sequential([
-            #layers.multiply([self.outputs[0] , self.outputs[-1]]),
-            layers.Conv2D(
-                filters=self._block_args.input_filters,
-                kernel_size=1,
-                padding="same",
-                use_bias=False,
-                kernel_initializer=CONV_KERNEL_INITIALIZER,
-            ),
-            layers.BatchNormalization()
-        ])
+        return Sequential(
+            [
+                # layers.multiply([self.outputs[0] , self.outputs[-1]]),
+                layers.Conv2D(
+                    filters=self._block_args.input_filters,
+                    kernel_size=1,
+                    padding="same",
+                    use_bias=False,
+                    kernel_initializer=CONV_KERNEL_INITIALIZER,
+                ),
+                layers.BatchNormalization(),
+            ]
+        )
 
     def module_5(self):
-        return Sequential([
-            self.module_4(),
-            layers.Dropout(self._dropout_rate)
-        ])
+        return Sequential([self.module_4(), layers.Dropout(self._dropout_rate)])
 
     def call(self, x, training=None, mask=None):
         x = self._stem(x)
@@ -325,7 +327,7 @@ if __name__ == "__main__":
     # for val_images, val_labels in ds_train.take(3):
     #     model(val_images, val_labels)
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-    #optimizer = tf.keras.optimizers.SGD()
+    # optimizer = tf.keras.optimizers.SGD()
     optimizer = tf.keras.optimizers.Adam()
     train_loss = tf.keras.metrics.Mean(name="train_loss")
     train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name="train_accuracy")
@@ -349,7 +351,6 @@ if __name__ == "__main__":
         t_loss = loss_object(labels, predictions)
         val_loss(t_loss)
         val_accuracy(labels, predictions)
-
 
     EPOCHS = 100
     for epoch in range(EPOCHS):

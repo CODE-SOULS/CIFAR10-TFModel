@@ -1,5 +1,7 @@
 ### YOUR CODE HERE
-# import tensorflow as tf
+from pathlib import Path
+
+import tensorflow as tf
 # import torch
 import os, time
 import numpy as np
@@ -14,18 +16,68 @@ class MyModel(object):
     def __init__(self, configs):
         self.configs = configs
         self.network = MyNetwork(configs)
+        self.model_checkpoint_callback = None
+        self.model_setup()
 
     def model_setup(self):
-        pass
+        saved_model = os.path.abspath(self.configs["save_dir"])
+        os.makedirs(saved_model, exist_ok=True)
+        checkpoint_filepath = os.path.join(saved_model,'checkpoint')
+        self.model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_filepath,
+            save_weights_only=True,
+            monitor='val_sparse_categorical_accuracy',
+            mode='max',
+            save_best_only=True)
+
 
     def train(self, x_train, y_train, configs, x_valid=None, y_valid=None):
-        pass
+
+        x_train = np.apply_along_axis(func1d=parse_record, arr=x_train, axis=1, training=True)
+        x_valid = np.apply_along_axis(func1d=parse_record, arr=x_valid, axis=1, training=True)
+
+        train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(32)
+        val_dataset = tf.data.Dataset.from_tensor_slices((x_valid, y_valid)).batch(32)
+        loss = tf.keras.losses.SparseCategoricalCrossentropy()
+        # optimizer = tf.keras.optimizers.SGD()
+        optimizer = tf.keras.optimizers.Adam()
+        self.network.compile(optimizer=optimizer,
+                      loss=loss,
+                      metrics=['sparse_categorical_accuracy'])
+        #self.network.fit(train_dataset,validation_data=val_dataset, epochs=10, batch_size=32, verbose=2, callbacks=[self.model_checkpoint_callback])
+        self.network.fit(train_dataset, validation_data=val_dataset, epochs=10, batch_size=32, verbose=2)
+        saved_model_folder = os.path.abspath(self.configs["save_dir"])
+        self.network.save(saved_model_folder, overwrite=True, save_format="tf")
+
 
     def evaluate(self, x, y):
-        pass
+        # saved_model = os.path.abspath(self.configs["save_dir"])
+        # checkpoint_filepath = os.path.join(saved_model, 'checkpoint')        #
+        # if os.path.exists(checkpoint_filepath):
+        #     self.network.load_weights(checkpoint_filepath)
+        # x = np.apply_along_axis(func1d=parse_record, arr=x, axis=1, training=True)
+        # loss = tf.keras.losses.SparseCategoricalCrossentropy()
+        # # optimizer = tf.keras.optimizers.SGD()
+        # optimizer = tf.keras.optimizers.Adam()
+        # self.network.compile(optimizer=optimizer,
+        #                      loss=loss,
+        #                      metrics=['sparse_categorical_accuracy'])
+        saved_model_folder = os.path.abspath(self.configs["save_dir"])
+        if os.path.exists(saved_model_folder):
+            self.network = tf.keras.models.load_model(saved_model_folder)
+
+        x = np.apply_along_axis(func1d=parse_record, arr=x, axis=1, training=True)
+
+        loss, accc = self.network.evaluate(x,y)
+        print(f"validation done : the loss and the accuracy reported by the model were {loss} and {accc}")
 
     def predict_prob(self, x):
-        pass
+        saved_model_folder = os.path.abspath(self.configs["save_dir"])
+        if os.path.exists(saved_model_folder):
+            self.network = tf.keras.models.load_model(saved_model_folder)
+
+        x = np.apply_along_axis(func1d=parse_record, arr=x, axis=1, training=False)
+        return self.network.predict(x)
 
 
 ### END CODE HERE
