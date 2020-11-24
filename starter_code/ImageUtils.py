@@ -16,9 +16,9 @@ def parse_record(record, training):
     """
     ### YOUR CODE HERE
     if training:
-        record = np.reshape(record,(32,32,3))
+        record = np.reshape(record, (32, 32, 3))
     ### END CODE HERE
-    image = preprocess_image(record, training) # If any.
+    image = preprocess_image(record, training)  # If any.
     return image
 
 
@@ -32,7 +32,7 @@ def preprocess_image(image, training):
         image: An array of shape [32, 32, 3]. The processed image.
     """
     ### YOUR CODE HERE
-    image = image / 255.0
+    image = image.astype(np.float32) / 255.0
     ### END CODE HERE
     return image
 

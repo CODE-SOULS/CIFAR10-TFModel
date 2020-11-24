@@ -9,9 +9,11 @@ from Configure import model_configs, training_configs
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("mode", default="predict", help="train, test or predict", nargs='?')
-parser.add_argument("data_dir", default="./../data", help="path to the data", nargs='?')
-parser.add_argument("--save_dir",default="./../output", help="path to save the results", nargs='?')
+parser.add_argument("mode", default="train", help="train, test or predict", nargs="?")
+parser.add_argument("data_dir", default="./../data", help="path to the data", nargs="?")
+parser.add_argument(
+    "--save_dir", default="./../output", help="path to save the results", nargs="?"
+)
 args = parser.parse_args()
 
 if __name__ == "__main__":

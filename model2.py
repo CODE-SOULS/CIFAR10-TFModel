@@ -370,3 +370,63 @@ if __name__ == "__main__":
                 val_accuracy.result() * 100,
             )
         )
+# self._stem = Sequential( [
+#         layers.Conv2D(
+#             filters=32,
+#             kernel_size=3,
+#             strides=(2, 2),
+#             padding="same",
+#             use_bias=False
+#         ),
+#         layers.BatchNormalization(),
+#         layers.Activation(self._activation_fn),
+#         layers.MaxPooling2D(pool_size=(2, 2))
+#     ],
+#     name="stem",
+# )
+#
+# self.fe = Sequential([
+#     layers.Conv2D(32, (3, 3), padding="same"),
+#     layers.Activation("relu"),
+#     layers.BatchNormalization(),
+#     layers.Conv2D(32, (3, 3), padding="same"),
+#     layers.Activation("relu"),
+#     layers.BatchNormalization(),
+#     layers.MaxPooling2D(pool_size=(2, 2))
+# ])
+#
+# self.fe = Sequential([
+#     layers.Conv2D(32, (3, 3), padding="same"),
+#     layers.Activation("relu"),
+#     layers.BatchNormalization(),
+#     layers.Conv2D(32, (3, 3), padding="same"),
+#     layers.Activation("relu"),
+#     layers.BatchNormalization(),
+#     layers.MaxPooling2D(pool_size=(2, 2))
+# ])
+#
+# self._top = Sequential([
+#         layers.Conv2D(
+#             filters=500,
+#             kernel_size=1,
+#             padding="same",
+#             use_bias=False
+#         ),
+#         layers.BatchNormalization(),
+#         layers.Activation(self._activation_fn),
+#     ],
+#     name="top",
+# )
+# self._classifier = Sequential(
+#     [
+#         layers.GlobalAveragePooling2D(),
+#         layers.Dropout(dropout_rate),
+#         #layers.Flatten(),
+#         layers.Dense(
+#             num_classes,
+#             activation="softmax",
+#             name="probs",
+#         ),
+#     ],
+#     name="classifier",
+# )

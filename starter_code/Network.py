@@ -1,41 +1,87 @@
 ### YOUR CODE HERE
-from tensorflow.keras import Model
+from tensorflow.keras import Model, Sequential
 from tensorflow.keras import layers
+import tensorflow as tf
+
 # import torch
 
 """This script defines the network.
 """
 
 class MyNetwork(Model):
-
-    def __init__(self, configs):
+    def __init__(
+        self, configs,
+            dropout_rate=0.25,
+            num_classes=10,
+            num_layers=5,
+            increment=True,
+            increment_value = 16
+    ):
         super(MyNetwork, self).__init__()
         self.configs = configs
-        self.conv1 = layers.Conv2D(
-            16, 3, input_shape=(32, 32, 3), padding="same", activation="relu"
+        self._activation_fn = tf.nn.swish
+        self._dropout_rate = dropout_rate
+
+        if increment:
+            self._filters = [n for n in range(increment_value, increment_value * (num_layers+1), increment_value)]
+        else:
+            self._filters = [n for n in reversed(range(increment_value, increment_value * (num_layers+1), increment_value))]
+        # feature extraction layers
+        for num_filters in self._filters:
+            setattr(self, f"conv_{num_filters}", self.conv_block(num_filters))
+
+        # classifier
+        self._classifier = Sequential(
+            [
+                layers.Dropout(dropout_rate),
+                layers.Flatten(),
+                layers.ReLU(),
+                layers.Dropout(dropout_rate),
+                layers.Dense(
+                    num_classes,
+                    activation="softmax",
+                    name="probs",
+                    kernel_initializer='he_uniform'
+                ),
+            ],
+            name="classifier",
         )
-        self.conv2 = layers.Conv2D(32, 3, activation="relu")
-        self.flatten = layers.Flatten()
-        self.d1 = layers.Dense(128, activation="relu")
-        self.d2 = layers.Dense(10, activation="softmax")
+
+    def conv_block(self, num_filters, kernel_size=3):
+        return Sequential(
+            [
+                layers.Conv2D(num_filters,kernel_size=kernel_size, padding="same", kernel_initializer='he_uniform'),
+                layers.ReLU(),
+                layers.BatchNormalization(),
+                layers.Conv2D(num_filters,kernel_size=kernel_size, padding="same", kernel_initializer='he_uniform'),
+                layers.ReLU(),
+                layers.BatchNormalization(),
+                layers.MaxPool2D((2, 2)),
+                #layers.AveragePooling2D((2,2)),
+                layers.Dropout(0.2),
+
+            ]
+        )
 
     def call(self, inputs, training=None, mask=None):
-        '''
+        """
         Args:
             inputs: A Tensor representing a batch of input images.
             training: A boolean. Used by operations that work differently
                 in training and testing phases such as batch normalization.
         Return:
             The output Tensor of the network.
-        '''
+        """
         return self.build_network(inputs, training)
 
-    def build_network(self, inputs, training):
-        x = self.conv1(inputs)
-        x = self.conv2(x)
-        x = self.flatten(x)
-        x = self.d1(x)
-        return self.d2(x)
+    def build_network(self, x, training):
+        # x = self._stem(inputs)
+        # x = self.fe(x)
+        # x = self._top(x)
+        for num_filters in self._filters:
+            x = getattr(self, f"conv_{num_filters}")(x)
+        x = self._classifier(x)
+        return x
 
 
 ### END CODE HERE
