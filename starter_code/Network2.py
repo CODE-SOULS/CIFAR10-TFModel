@@ -1,5 +1,4 @@
 ### YOUR CODE HERE
-import math
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras import layers
 import tensorflow as tf
@@ -16,9 +15,9 @@ class MyNetwork(Model):
         configs,
         dropout_rate=0.25,
         num_classes=10,
-        num_layers=4,
+        num_layers=5,
         increment=True,
-        increment_value=32,
+        increment_value=16,
     ):
         super(MyNetwork, self).__init__()
         self.configs = configs
@@ -44,24 +43,16 @@ class MyNetwork(Model):
                 )
             ]
         # feature extraction layers
-        dropout_rate = 0.2
-        for i, num_filters in enumerate(self._filters):
-            print(dropout_rate)
-            setattr(
-                self,
-                f"conv_{num_filters}",
-                self.conv_block(num_filters, kernel_size=3, dropout_rate=dropout_rate),
-            )
-            dropout_rate += 0.1
-            dropout_rate = round(dropout_rate, 2)
+        for num_filters in self._filters:
+            setattr(self, f"conv_{num_filters}", self.conv_block(num_filters))
 
         # classifier
         self._classifier = Sequential(
             [
+                layers.Dropout(dropout_rate),
                 layers.Flatten(),
-                layers.Dense(128, activation="relu", kernel_initializer="he_uniform"),
-                layers.BatchNormalization(),
-                layers.Dropout(0.5),
+                layers.ReLU(),
+                layers.Dropout(dropout_rate),
                 layers.Dense(
                     num_classes,
                     activation="softmax",
@@ -72,7 +63,7 @@ class MyNetwork(Model):
             name="classifier",
         )
 
-    def conv_block(self, num_filters, kernel_size=3, dropout_rate=0.2):
+    def conv_block(self, num_filters, kernel_size=3):
         return Sequential(
             [
                 layers.Conv2D(
@@ -93,7 +84,7 @@ class MyNetwork(Model):
                 layers.BatchNormalization(),
                 layers.MaxPool2D((2, 2)),
                 # layers.AveragePooling2D((2,2)),
-                layers.Dropout(dropout_rate),
+                layers.Dropout(0.2),
             ]
         )
 

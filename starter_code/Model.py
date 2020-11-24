@@ -35,14 +35,18 @@ class MyModel(object):
 
     def augment_dataset(self, ds):
         AUTOTUNE = tf.data.experimental.AUTOTUNE
-        data_augmentation = tf.keras.Sequential([
-            layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-            layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-            layers.experimental.preprocessing.RandomRotation(0.1),
-            layers.experimental.preprocessing.RandomContrast(0.1)
-        ])
-        ds = ds.map(lambda x, y: (data_augmentation(x, training=True), y),
-                    num_parallel_calls=AUTOTUNE)
+        data_augmentation = tf.keras.Sequential(
+            [
+                layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+                layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+                layers.experimental.preprocessing.RandomRotation(0.1),
+                layers.experimental.preprocessing.RandomContrast(0.1),
+            ]
+        )
+        ds = ds.map(
+            lambda x, y: (data_augmentation(x, training=True), y),
+            num_parallel_calls=AUTOTUNE,
+        )
         # Use buffered prefecting on all datasets
         return ds.prefetch(buffer_size=AUTOTUNE)
 
