@@ -16,8 +16,8 @@ class MyNetwork(Model):
         configs,
         dropout_rate=0.25,
         num_classes=10,
-        num_layers=4,
-        increment=True,
+        num_layers=5,
+        increment=False,
         increment_value=32,
     ):
         super(MyNetwork, self).__init__()
@@ -46,7 +46,6 @@ class MyNetwork(Model):
         # feature extraction layers
         dropout_rate = 0.2
         for i, num_filters in enumerate(self._filters):
-            print(dropout_rate)
             setattr(
                 self,
                 f"conv_{num_filters}",
@@ -54,12 +53,11 @@ class MyNetwork(Model):
             )
             dropout_rate += 0.1
             dropout_rate = round(dropout_rate, 2)
-
         # classifier
         self._classifier = Sequential(
             [
                 layers.Flatten(),
-                layers.Dense(128, activation="relu", kernel_initializer="he_uniform"),
+                layers.Dense(512, activation="relu", kernel_initializer="he_uniform"),
                 layers.BatchNormalization(),
                 layers.Dropout(0.5),
                 layers.Dense(
@@ -81,18 +79,20 @@ class MyNetwork(Model):
                     padding="same",
                     kernel_initializer="he_uniform",
                 ),
-                layers.ReLU(),
-                layers.BatchNormalization(),
+                #layers.ReLU(),
+                layers.Activation(activation=self._activation_fn),
+                layers.BatchNormalization(-1),
                 layers.Conv2D(
                     num_filters,
                     kernel_size=kernel_size,
                     padding="same",
                     kernel_initializer="he_uniform",
                 ),
-                layers.ReLU(),
-                layers.BatchNormalization(),
+                #layers.ReLU(),
+                layers.Activation(activation=self._activation_fn),
+                layers.BatchNormalization(-1),
                 layers.MaxPool2D((2, 2)),
-                # layers.AveragePooling2D((2,2)),
+                #layers.AveragePooling2D((2,2)),
                 layers.Dropout(dropout_rate),
             ]
         )

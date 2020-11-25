@@ -31,5 +31,5 @@ if __name__ == "__main__":
         # Predicting and storing results on private testing dataset
         x_test = load_testing_images(args.data_dir)
         predictions = model.predict_prob(x_test)
-        np.save(args.save_dir, predictions)
+        np.save(os.path.join(args.save_dir, "predictions"), predictions)
 ### END CODE HERE
