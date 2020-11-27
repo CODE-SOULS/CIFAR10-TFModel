@@ -10,112 +10,66 @@ import tensorflow as tf
 """
 
 
-class MyNetwork(Model):
-    def __init__(
-        self,
-        configs,
-        dropout_rate=0.25,
-        num_classes=10,
-        num_layers=5,
-        increment=False,
-        increment_value=32,
-    ):
-        super(MyNetwork, self).__init__()
+class MyNetwork(object):
+    def __init__(self, configs):
         self.configs = configs
-        self._activation_fn = tf.nn.swish
-        self._dropout_rate = dropout_rate
 
-        if increment:
-            self._filters = [
-                n
-                for n in range(
-                    increment_value, increment_value * (num_layers + 1), increment_value
-                )
-            ]
-        else:
-            self._filters = [
-                n
-                for n in reversed(
-                    range(
-                        increment_value,
-                        increment_value * (num_layers + 1),
-                        increment_value,
-                    )
-                )
-            ]
-        # feature extraction layers
-        dropout_rate = 0.2
-        for i, num_filters in enumerate(self._filters):
-            setattr(
-                self,
-                f"conv_{num_filters}",
-                self.conv_block(num_filters, kernel_size=3, dropout_rate=dropout_rate),
-            )
-            dropout_rate += 0.1
-            dropout_rate = round(dropout_rate, 2)
-        # classifier
-        self._classifier = Sequential(
-            [
-                layers.Flatten(),
-                layers.Dense(512, activation="relu", kernel_initializer="he_uniform"),
-                layers.BatchNormalization(),
-                layers.Dropout(0.5),
-                layers.Dense(
-                    num_classes,
-                    activation="softmax",
-                    name="probs",
-                    kernel_initializer="he_uniform",
-                ),
-            ],
-            name="classifier",
-        )
+    def __call__(self, *args, **kwargs):
+        return self.build_network()
 
-    def conv_block(self, num_filters, kernel_size=3, dropout_rate=0.2):
-        return Sequential(
-            [
-                layers.Conv2D(
-                    num_filters,
-                    kernel_size=kernel_size,
-                    padding="same",
-                    kernel_initializer="he_uniform",
-                ),
-                #layers.ReLU(),
-                layers.Activation(activation=self._activation_fn),
-                layers.BatchNormalization(-1),
-                layers.Conv2D(
-                    num_filters,
-                    kernel_size=kernel_size,
-                    padding="same",
-                    kernel_initializer="he_uniform",
-                ),
-                #layers.ReLU(),
-                layers.Activation(activation=self._activation_fn),
-                layers.BatchNormalization(-1),
-                layers.MaxPool2D((2, 2)),
-                #layers.AveragePooling2D((2,2)),
-                layers.Dropout(dropout_rate),
-            ]
-        )
-
-    def call(self, inputs, training=None, mask=None):
-        """
-        Args:
-            inputs: A Tensor representing a batch of input images.
-            training: A boolean. Used by operations that work differently
-                in training and testing phases such as batch normalization.
-        Return:
-            The output Tensor of the network.
-        """
-        return self.build_network(inputs, training)
-
-    def build_network(self, x, training):
-        # x = self._stem(inputs)
-        # x = self.fe(x)
-        # x = self._top(x)
-        for num_filters in self._filters:
-            x = getattr(self, f"conv_{num_filters}")(x)
-        x = self._classifier(x)
+    def conv_module(self, x, K, kX, kY, stride, chanDim, padding="same"):
+        # define a CONV => BN => RELU pattern
+        x = layers.Conv2D(K, (kX, kY), strides=stride, padding=padding)(x)
+        x = layers.BatchNormalization(axis=chanDim)(x)
+        x = layers.Activation("relu")(x)
+        # return the block
         return x
 
+    def inception_module(self, x, numK1x1, numK3x3, chanDim):
+        # define two CONV modules, then concatenate across the
+        # channel dimension
+        conv_1x1 = self.conv_module(x, numK1x1, 1, 1, (1, 1), chanDim)
+        conv_3x3 = self.conv_module(x, numK3x3, 3, 3, (1, 1), chanDim)
+        x = layers.concatenate([conv_1x1, conv_3x3], axis=chanDim)
+        # return the block
+        return x
 
-### END CODE HERE
+    def downsample_module(self, x, K, chanDim):
+        # define the CONV module and POOL, then concatenate
+        # across the channel dimensions
+        conv_3x3 = self.conv_module(x, K, 3, 3, (2, 2), chanDim, padding="valid")
+        pool = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
+        x = layers.concatenate([conv_3x3, pool], axis=chanDim)
+        # return the block
+        return x
+
+    def build_network(self):
+        chanDim = -1
+        inputShape = (32, 32, 3)
+        classes = 10
+        # define the model input and first CONV module
+        inputs = layers.Input(shape=inputShape)
+        x = self.conv_module(inputs, 96, 3, 3, (1, 1), chanDim)
+        # two Inception modules followed by a downsample module
+        x = self.inception_module(x, 32, 32, chanDim)
+        x = self.inception_module(x, 32, 48, chanDim)
+        x = self.downsample_module(x, 80, chanDim)
+        # four Inception modules followed by a downsample module
+        x = self.inception_module(x, 112, 48, chanDim)
+        x = self.inception_module(x, 96, 64, chanDim)
+        x = self.inception_module(x, 80, 80, chanDim)
+        x = self.inception_module(x, 48, 96, chanDim)
+        x = self.downsample_module(x, 96, chanDim)
+        # two Inception modules followed by global POOL and dropout
+        x = self.inception_module(x, 176, 160, chanDim)
+        x = self.inception_module(x, 176, 160, chanDim)
+        x = layers.AveragePooling2D((7, 7))(x)
+        x = layers.Dropout(0.5)(x)
+        # softmax classifier
+        x = layers.Flatten()(x)
+        x = layers.Dense(classes)(x)
+        x = layers.Activation("softmax")(x)
+        # create the model
+        model = Model(inputs, x, name="minigooglenet")
+        # return the constructed network architecture
+        return model
