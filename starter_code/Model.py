@@ -6,6 +6,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
+from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from ImageUtils import parse_record
 from Network import MyNetwork
@@ -26,10 +27,10 @@ class MyModel(object):
         data_augmentation = tf.keras.Sequential(
             [
                 layers.experimental.preprocessing.RandomFlip("horizontal"),
-                layers.experimental.preprocessing.RandomRotation(factor=0.2),
-                layers.experimental.preprocessing.RandomZoom(
-                    width_factor=0.15, height_factor=0.15
-                ),
+                layers.experimental.preprocessing.RandomRotation(factor=0.2)
+                # layers.experimental.preprocessing.RandomZoom(
+                #     width_factor=0.15, height_factor=0.15
+                # ),
             ]
         )
         dataset = dataset.map(
@@ -42,6 +43,7 @@ class MyModel(object):
         num_epochs = configs["num_epochs"]
         batch_size = configs["batch_size"]
         verbose = configs["verbose"]
+        learning_rate = configs["learning_rate"]
 
         x_train = np.apply_along_axis(
             func1d=parse_record, arr=x_train, axis=1, training=True
@@ -49,10 +51,11 @@ class MyModel(object):
         x_valid = np.apply_along_axis(
             func1d=parse_record, arr=x_valid, axis=1, training=True
         )
-        train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(32)
-        val_dataset = tf.data.Dataset.from_tensor_slices((x_valid, y_valid)).batch(32)
+        # train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(batch_size)
+        # val_dataset = tf.data.Dataset.from_tensor_slices((x_valid, y_valid)).batch(batch_size)
 
-        train_dataset = self.augment_dataset(train_dataset)
+        #train_dataset = self.augment_dataset(train_dataset)
+        #val_dataset = self.augment_dataset(val_dataset)
 
         # initial_learning_rate = 0.1
         # lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -60,19 +63,32 @@ class MyModel(object):
         # )
         # optimizer = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
         # optimizer = tf.keras.optimizers.Adam(lr=0.001,decay=0, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-
-        optimizer = tf.keras.optimizers.Adam()
+        optimizer = tf.keras.optimizers.SGD(lr=learning_rate, momentum=0.9, decay=learning_rate / num_epochs)
+        #optimizer = tf.keras.optimizers.Adam()
         loss = tf.keras.losses.SparseCategoricalCrossentropy()
         metric = tf.keras.metrics.SparseCategoricalAccuracy()
         self.model = self.network()
         self.model.compile(optimizer=optimizer, loss=loss, metrics=[metric])
-        self.model.fit(
-            train_dataset,
-            validation_data=val_dataset,
+
+        aug = ImageDataGenerator(rotation_range=18, zoom_range=0.15,
+                                 width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15,
+                                 horizontal_flip=True, fill_mode="nearest")
+
+        # self.model.fit(
+        #     train_dataset,
+        #     validation_data=val_dataset,
+        #     epochs=num_epochs,
+        #     batch_size=batch_size,
+        #     verbose=verbose,
+        # )
+
+        H = self.model.fit_generator(
+            aug.flow(x_train, y_train, batch_size=batch_size),
+            validation_data=(x_valid, y_valid),
+            steps_per_epoch=x_train.shape[0] // batch_size,
             epochs=num_epochs,
-            batch_size=batch_size,
-            verbose=verbose,
-        )
+            verbose=1)
+
         saved_model_folder = os.path.abspath(self.configs["save_dir"])
         self.model.save(saved_model_folder, overwrite=True, save_format="tf")
 

@@ -2,6 +2,7 @@
 import math
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras import layers
+from tensorflow.keras.applications import EfficientNetB7, DenseNet121
 import tensorflow as tf
 
 # import torch
@@ -22,6 +23,7 @@ class MyNetwork(object):
         x = layers.Conv2D(K, (kX, kY), strides=stride, padding=padding)(x)
         x = layers.BatchNormalization(axis=chanDim)(x)
         x = layers.Activation("relu")(x)
+        #x = layers.Dropout(0.2)(x)
         # return the block
         return x
 
@@ -49,6 +51,7 @@ class MyNetwork(object):
         classes = 10
         # define the model input and first CONV module
         inputs = layers.Input(shape=inputShape)
+
         x = self.conv_module(inputs, 96, 3, 3, (1, 1), chanDim)
         # two Inception modules followed by a downsample module
         x = self.inception_module(x, 32, 32, chanDim)
@@ -65,11 +68,26 @@ class MyNetwork(object):
         x = self.inception_module(x, 176, 160, chanDim)
         x = layers.AveragePooling2D((7, 7))(x)
         x = layers.Dropout(0.5)(x)
+
         # softmax classifier
         x = layers.Flatten()(x)
         x = layers.Dense(classes)(x)
         x = layers.Activation("softmax")(x)
-        # create the model
         model = Model(inputs, x, name="minigooglenet")
-        # return the constructed network architecture
+
+        # dnet = DenseNet121(include_top=False)
+        # x = dnet(inputs)
+        # x = layers.Flatten()(x)
+        # x = layers.Dense(512)(x)
+        # x = layers.Dropout(0.5)(x)
+        # x = layers.Dense(classes)(x)
+        # x = layers.Activation("softmax")(x)
+        # model = Model(inputs, x, name="DenseNet121-updated")
+
+        #efn = EfficientNetB7(classes=10, include_top=False)
+        #x = efn(inputs)
+        # x = layers.Flatten()(x)
+        # x = layers.Dense(classes)(x)
+        # x = layers.Activation("softmax")(x)
+        #model = Model(inputs, x, name="efficientNet-updated")
         return model
