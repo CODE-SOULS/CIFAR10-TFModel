@@ -87,7 +87,7 @@ class MyModel(object):
             validation_data=(x_valid, y_valid),
             steps_per_epoch=x_train.shape[0] // batch_size,
             epochs=num_epochs,
-            verbose=1)
+            verbose=verbose)
 
         saved_model_folder = os.path.abspath(self.configs["save_dir"])
         self.model.save(saved_model_folder, overwrite=True, save_format="tf")
