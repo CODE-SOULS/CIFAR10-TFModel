@@ -33,7 +33,6 @@ class MyNetwork(object):
     def __init__(self, configs):
         self.configs = configs
 
-
     def __call__(self, *args, **kwargs):
         return self.build_network()
 
@@ -46,7 +45,7 @@ class MyNetwork(object):
                     padding="same",
                     kernel_initializer=tf.initializers.variance_scaling(),
                 ),
-                #layers.Activation(tf.nn.swish),
+                # layers.Activation(tf.nn.swish),
                 layers.ReLU(),
                 layers.BatchNormalization(-1, momentum=0.997, epsilon=1e-5),
                 layers.Conv2D(
@@ -56,13 +55,14 @@ class MyNetwork(object):
                     kernel_initializer=tf.initializers.variance_scaling(),
                 ),
                 layers.ReLU(),
-                #layers.Activation(tf.nn.swish),
+                # layers.Activation(tf.nn.swish),
                 layers.BatchNormalization(-1, momentum=0.997, epsilon=1e-5),
                 layers.MaxPool2D((2, 2)),
-                #layers.AveragePooling2D(),
-                layers.Dropout(dropout_rate)
+                # layers.AveragePooling2D(),
+                layers.Dropout(dropout_rate),
             ]
         )
+
     def head_block(self, num_classes):
         return Sequential(
             [
@@ -78,6 +78,7 @@ class MyNetwork(object):
                 ),
             ]
         )
+
     def build_network(self):
         input_shape = (32, 32, 3)
         classes = 10
@@ -85,45 +86,21 @@ class MyNetwork(object):
         filters = []
         inputs = layers.Input(shape=input_shape)
 
-        x1 = self.conv_block(
-                32,
-                kernel_size=3,
-                dropout_rate=0.2
-            )(inputs)
+        x1 = self.conv_block(32, kernel_size=3, dropout_rate=0.2)(inputs)
 
-        x2 = self.conv_block(
-            32,
-            kernel_size=3,
-            dropout_rate=0.2
-        )(inputs)
+        x2 = self.conv_block(32, kernel_size=3, dropout_rate=0.2)(inputs)
 
         x = layers.concatenate([x1, x2])
 
-        x1 = self.conv_block(
-            64,
-            kernel_size=3,
-            dropout_rate=0.3
-        )(x)
+        x1 = self.conv_block(64, kernel_size=3, dropout_rate=0.3)(x)
 
-        x2 = self.conv_block(
-            64,
-            kernel_size=3,
-            dropout_rate=0.3
-        )(x)
+        x2 = self.conv_block(64, kernel_size=3, dropout_rate=0.3)(x)
 
         x = layers.concatenate([x1, x2])
 
-        x1 = self.conv_block(
-            128,
-            kernel_size=3,
-            dropout_rate=0.5
-        )(x)
+        x1 = self.conv_block(128, kernel_size=3, dropout_rate=0.5)(x)
 
-        x2 = self.conv_block(
-            128,
-            kernel_size=3,
-            dropout_rate=0.5
-        )(x)
+        x2 = self.conv_block(128, kernel_size=3, dropout_rate=0.5)(x)
 
         x = layers.concatenate([x1, x2])
 
