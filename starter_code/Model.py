@@ -27,16 +27,26 @@ class MyModel(object):
         verbose = training_config["verbose"]
         learning_rate = training_config["learning_rate"]
         momentum = training_config["momentum"]
+
+        # x_train = np.apply_along_axis(
+        #     func1d=parse_record, arr=x_train, axis=1, training=True
+        # )
+        # x_valid = np.apply_along_axis(
+        #     func1d=parse_record, arr=x_valid, axis=1, training=True
+        # )
+
+        x_train = x_train.astype("float32")
+        x_valid = x_valid.astype("float32")
+        # normalize to range 0-1
+        x_train = x_train / 255.0
+        x_valid = x_valid / 255.0
+
         num_steps = int(x_train.shape[0] / batch_size)
-        x_train = np.apply_along_axis(
-            func1d=parse_record, arr=x_train, axis=1, training=True
-        )
-        x_valid = np.apply_along_axis(
-            func1d=parse_record, arr=x_valid, axis=1, training=True
-        )
+
         optimizer = tf.keras.optimizers.SGD(lr=learning_rate, momentum=momentum)
         loss = tf.keras.losses.SparseCategoricalCrossentropy()
         metric = tf.keras.metrics.SparseCategoricalAccuracy()
+
         self.model = self.network()
         self.model.compile(optimizer=optimizer, loss=loss, metrics=[metric])
         datagen = ImageDataGenerator(
