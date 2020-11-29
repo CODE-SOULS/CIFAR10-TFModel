@@ -42,7 +42,7 @@ class MyModel(object):
         datagen = ImageDataGenerator(
             width_shift_range=0.1, height_shift_range=0.1, horizontal_flip=True
         )
-        history = self.model.fit_generator(
+        history = self.model.fit(
             datagen.flow(x_train, y_train, batch_size=batch_size),
             steps_per_epoch=num_steps,
             epochs=num_epochs,

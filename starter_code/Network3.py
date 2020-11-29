@@ -35,7 +35,7 @@ class MyNetwork(object):
             kernel_initializer=kernel_initializer,
             padding=padding,
         )(x)
-        x = layers.BatchNormalization()(x)
+        x = layers.BatchNormalization(axis=-1)(x)
         x = layers.Conv2D(
             num_filters,
             kernel_size,
@@ -43,8 +43,8 @@ class MyNetwork(object):
             kernel_initializer=kernel_initializer,
             padding=padding,
         )(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.MaxPooling2D((2, 2))
+        x = layers.BatchNormalization(axis=-1)(x)
+        x = layers.MaxPooling2D((2, 2))(x)
         x = layers.Dropout(dropout_rate)(x)
         return x
 
