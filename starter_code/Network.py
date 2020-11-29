@@ -23,7 +23,7 @@ class MyNetwork(object):
         x = layers.Conv2D(K, (kX, kY), strides=stride, padding=padding)(x)
         x = layers.BatchNormalization(axis=chanDim)(x)
         x = layers.Activation("relu")(x)
-        #x = layers.Dropout(0.2)(x)
+        # x = layers.Dropout(0.2)(x)
         # return the block
         return x
 
@@ -84,10 +84,10 @@ class MyNetwork(object):
         # x = layers.Activation("softmax")(x)
         # model = Model(inputs, x, name="DenseNet121-updated")
 
-        #efn = EfficientNetB7(classes=10, include_top=False)
-        #x = efn(inputs)
+        # efn = EfficientNetB7(classes=10, include_top=False)
+        # x = efn(inputs)
         # x = layers.Flatten()(x)
         # x = layers.Dense(classes)(x)
         # x = layers.Activation("softmax")(x)
-        #model = Model(inputs, x, name="efficientNet-updated")
+        # model = Model(inputs, x, name="efficientNet-updated")
         return model
