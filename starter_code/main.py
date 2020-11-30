@@ -9,7 +9,7 @@ from Configure import model_configs, training_configs
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("mode", default="train", help="train, test or predict", nargs="?")
+parser.add_argument("mode", default="test", help="train, test or predict", nargs="?")
 parser.add_argument("data_dir", default="./data", help="path to the data", nargs="?")
 parser.add_argument(
     "--save_dir", default="./", help="path to save the results", nargs="?"
@@ -31,6 +31,5 @@ if __name__ == "__main__":
         # Predicting and storing results on private testing dataset
         x_test = load_testing_images(args.data_dir)
         predictions = model.predict_prob(x_test)
-        print(predictions.shape)
         np.save(os.path.join(args.save_dir, "predictions"), predictions)
 ### END CODE HERE
