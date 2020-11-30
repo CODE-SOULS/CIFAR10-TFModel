@@ -52,7 +52,12 @@ def load_data(data_dir):
 
     ### END CODE HERE
 
-    return x_train, y_train, x_test, y_test
+    return (
+        x_train.reshape((50000, 3072)),
+        y_train,
+        x_test.reshape((10000, 3072)),
+        y_test,
+    )
 
 
 def load_testing_images(data_dir):
@@ -69,8 +74,8 @@ def load_testing_images(data_dir):
 
     ### YOUR CODE HERE
     x_test = np.load(os.path.join(data_dir, "private_test_images.npy"))
+    x_test = x_test.astype(np.float32) / 255.0
     ### END CODE HERE
-
     return x_test
 
 

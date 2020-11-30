@@ -1,9 +1,6 @@
 ### YOUR CODE HERE
-import math
-from tensorflow.keras import Model, Sequential
+from tensorflow.keras import Model
 from tensorflow.keras import layers
-from tensorflow.keras.applications import EfficientNetB7, DenseNet121
-import tensorflow as tf
 
 # import torch
 
@@ -18,76 +15,55 @@ class MyNetwork(object):
     def __call__(self, *args, **kwargs):
         return self.build_network()
 
-    def conv_module(self, x, K, kX, kY, stride, chanDim, padding="same"):
-        # define a CONV => BN => RELU pattern
-        x = layers.Conv2D(K, (kX, kY), strides=stride, padding=padding)(x)
-        x = layers.BatchNormalization(axis=chanDim)(x)
-        x = layers.Activation("relu")(x)
-        # x = layers.Dropout(0.2)(x)
-        # return the block
+    @staticmethod
+    def feature_extraction_block(
+        x,
+        num_filters,
+        kernel_size=(3, 3),
+        activation_function="relu",
+        kernel_initializer="he_uniform",
+        padding="same",
+        dropout_rate=0.2,
+    ):
+        x = layers.Conv2D(
+            num_filters,
+            kernel_size,
+            activation=activation_function,
+            kernel_initializer=kernel_initializer,
+            padding=padding,
+        )(x)
+        x = layers.BatchNormalization(axis=-1)(x)
+        x = layers.Conv2D(
+            num_filters,
+            kernel_size,
+            activation=activation_function,
+            kernel_initializer=kernel_initializer,
+            padding=padding,
+        )(x)
+        x = layers.BatchNormalization(axis=-1)(x)
+        x = layers.MaxPooling2D((2, 2))(x)
+        x = layers.Dropout(dropout_rate)(x)
         return x
 
-    def inception_module(self, x, numK1x1, numK3x3, chanDim):
-        # define two CONV modules, then concatenate across the
-        # channel dimension
-        conv_1x1 = self.conv_module(x, numK1x1, 1, 1, (1, 1), chanDim)
-        conv_3x3 = self.conv_module(x, numK3x3, 3, 3, (1, 1), chanDim)
-        x = layers.concatenate([conv_1x1, conv_3x3], axis=chanDim)
-        # return the block
-        return x
-
-    def downsample_module(self, x, K, chanDim):
-        # define the CONV module and POOL, then concatenate
-        # across the channel dimensions
-        conv_3x3 = self.conv_module(x, K, 3, 3, (2, 2), chanDim, padding="valid")
-        pool = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
-        x = layers.concatenate([conv_3x3, pool], axis=chanDim)
-        # return the block
+    @staticmethod
+    def classifier_block(x, num_neurons, num_classes, dropout_rate=0.5):
+        x = layers.Flatten()(x)
+        x = layers.Dense(
+            num_neurons, activation="relu", kernel_initializer="he_uniform"
+        )(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Dropout(dropout_rate)(x)
+        x = layers.Dense(num_classes, activation="softmax")(x)
         return x
 
     def build_network(self):
-        chanDim = -1
-        inputShape = (32, 32, 3)
-        classes = 10
+        input_shape = (32, 32, 3)
+        num_classes = 10
         # define the model input and first CONV module
-        inputs = layers.Input(shape=inputShape)
-
-        x = self.conv_module(inputs, 96, 3, 3, (1, 1), chanDim)
-        # two Inception modules followed by a downsample module
-        x = self.inception_module(x, 32, 32, chanDim)
-        x = self.inception_module(x, 32, 48, chanDim)
-        x = self.downsample_module(x, 80, chanDim)
-        # four Inception modules followed by a downsample module
-        x = self.inception_module(x, 112, 48, chanDim)
-        x = self.inception_module(x, 96, 64, chanDim)
-        x = self.inception_module(x, 80, 80, chanDim)
-        x = self.inception_module(x, 48, 96, chanDim)
-        x = self.downsample_module(x, 96, chanDim)
-        # two Inception modules followed by global POOL and dropout
-        x = self.inception_module(x, 176, 160, chanDim)
-        x = self.inception_module(x, 176, 160, chanDim)
-        x = layers.AveragePooling2D((7, 7))(x)
-        x = layers.Dropout(0.5)(x)
-
-        # softmax classifier
-        x = layers.Flatten()(x)
-        x = layers.Dense(classes)(x)
-        x = layers.Activation("softmax")(x)
-        model = Model(inputs, x, name="minigooglenet")
-
-        # dnet = DenseNet121(include_top=False)
-        # x = dnet(inputs)
-        # x = layers.Flatten()(x)
-        # x = layers.Dense(512)(x)
-        # x = layers.Dropout(0.5)(x)
-        # x = layers.Dense(classes)(x)
-        # x = layers.Activation("softmax")(x)
-        # model = Model(inputs, x, name="DenseNet121-updated")
-
-        # efn = EfficientNetB7(classes=10, include_top=False)
-        # x = efn(inputs)
-        # x = layers.Flatten()(x)
-        # x = layers.Dense(classes)(x)
-        # x = layers.Activation("softmax")(x)
-        # model = Model(inputs, x, name="efficientNet-updated")
+        inputs = layers.Input(shape=input_shape)
+        x = self.feature_extraction_block(inputs, num_filters=32, dropout_rate=0.2)
+        x = self.feature_extraction_block(x, num_filters=64, dropout_rate=0.3)
+        x = self.feature_extraction_block(x, num_filters=128, dropout_rate=0.4)
+        x = self.classifier_block(x, num_neurons=128, num_classes=num_classes)
+        model = Model(inputs, x, name="final_model")
         return model
