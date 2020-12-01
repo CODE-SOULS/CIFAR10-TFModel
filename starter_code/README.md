@@ -17,3 +17,12 @@
 ```python
   python main.py --mode "predict" --data_dir "./data" --save_dir "./" 
 ```
+
+
+[dependencies]
+python = "^3.7"
+tensorflow = "2.2.0"
+tensorflow-datasets = "^4.1.0"
+matplotlib = "^3.3.3"
+autokeras = "^1.0.11"
+keras-tuner = {git = "https://github.com/keras-team/keras-tuner.git", rev = "1.0.2rc3"}
